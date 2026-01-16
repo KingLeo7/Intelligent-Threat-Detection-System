@@ -1,0 +1,10 @@
+{
+    "monitor_dir": "C:/Users/USER.01/Downloads",
+    "check_interval": 3,
+    "threshold": 3,
+    "recursive_scan": false,
+    "excluded_extensions": [
+        ".tmp",
+        ".log"
+    ]
+}
