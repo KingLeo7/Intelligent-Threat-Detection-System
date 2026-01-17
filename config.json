@@ -1,5 +1,5 @@
 {
-    "monitor_dir": "C:/Users/USER.01/Downloads",
+    "monitor_dir": "/home/kingleo_7/Desktop/rudrapro/test_files",
     "check_interval": 3,
     "threshold": 3,
     "recursive_scan": false,
