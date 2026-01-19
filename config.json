@@ -1,10 +1,11 @@
 {
-    "monitor_dir": "/home/kingleo_7/Desktop/rudrapro/test_files",
+    "monitor_dir": "/home/kingleo_7/Desktop/rudra_ccc/test_files",
     "check_interval": 3,
     "threshold": 3,
     "recursive_scan": false,
     "excluded_extensions": [
         ".tmp",
         ".log"
-    ]
+    ],
+    "safe_scans_notification": 5
 }
