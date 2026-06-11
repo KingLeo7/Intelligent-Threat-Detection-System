@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IDPS Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; color: #fff; font-family: monospace; display: flex; min-height: 100vh; }
+  #sidebar { width: 220px; background: #111; border-right: 2px solid #c00; padding: 20px 0; display: flex; flex-direction: column; }
+  #sidebar h1 { color: #c00; font-size: 18px; text-align: center; padding: 0 10px 20px; border-bottom: 1px solid #c00; }
+  #sidebar nav a { display: block; padding: 12px 20px; color: #aaa; text-decoration: none; font-size: 14px; border-left: 3px solid transparent; }
+  #sidebar nav a:hover, #sidebar nav a.active { color: #fff; border-left: 3px solid #c00; background: #1a0000; }
+  #main { flex: 1; padding: 20px; overflow-y: auto; }
+  #status-bar { display: flex; gap: 20px; align-items: center; margin-bottom: 20px; padding: 14px 16px; background: #111; border: 1px solid #c00; }
+  #threat-level { color: #c00; font-size: 16px; font-weight: bold; }
+  #system-status { color: #0f0; }
+  #stats { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .stat-box { flex: 1; min-width: 150px; background: #111; border: 1px solid #333; padding: 16px; text-align: center; }
+  .stat-box .label { color: #888; font-size: 12px; margin-bottom: 8px; }
+  .stat-box .value { color: #c00; font-size: 32px; font-weight: bold; }
+  .card { background: #111; border: 1px solid #333; margin-bottom: 16px; }
+  .card-title { background: #1a0000; border-bottom: 1px solid #c00; padding: 12px 16px; color: #c00; font-size: 14px; }
+  .card-body { padding: 16px; }
+  .radio-group label { display: block; margin: 6px 0; color: #ccc; font-size: 14px; cursor: pointer; }
+  .radio-group input[type="radio"] { accent-color: #c00; margin-right: 8px; }
+  #url-input { width: 100%; background: #000; border: 1px solid #555; color: #fff; padding: 10px; font-family: monospace; font-size: 13px; margin-bottom: 12px; outline: none; }
+  #url-input:focus { border-color: #c00; }
+  #analyze-btn { background: #c00; color: #fff; border: none; padding: 10px 24px; font-family: monospace; font-size: 14px; cursor: pointer; width: 100%; }
+  #analyze-btn:hover { background: #f00; }
+  #result-box { margin-top: 12px; padding: 12px; border: 1px solid #333; font-size: 14px; display: none; }
+  #result-box.safe { border-color: #0a0; color: #0f0; }
+  #result-box.danger { border-color: #c00; color: #f44; }
+  .log-item { display: flex; flex-wrap: wrap; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #222; font-size: 13px; gap: 8px; }
+  .log-url { color: #ccc; flex: 1; min-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .log-safe { color: #0f0; }
+  .log-attack { color: #f44; }
+  .meta { color: #888; font-size: 12px; }
+  #main::-webkit-scrollbar { width: 6px; }
+  #main::-webkit-scrollbar-track { background: #000; }
+  #main::-webkit-scrollbar-thumb { background: #c00; }
+</style>
+</head>
+<body>
+  <div id="sidebar">
+    <h1>🛡️ IDPS SYSTEM</h1>
+    <nav>
+      <a href="/dashboard" class="active">📊 Dashboard</a>
+      <a href="/logs">📜 Attack Logs</a>
+      <a href="/blocked">🚫 Blocked IPs</a>
+      <a href="/settings">⚙️ Settings</a>
+    </nav>
+  </div>
+  <div id="main">
+    <div id="status-bar">
+      <span id="threat-level">🔴 Threat Level: HIGH</span>
+      <span id="system-status">● ACTIVE</span>
+    </div>
+    <div id="stats">
+      <div class="stat-box">
+        <div class="label">Requests</div>
+        <div class="value" id="stat-requests">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Attacks</div>
+        <div class="value" id="stat-attacks">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Blocked</div>
+        <div class="value" id="stat-blocked">0</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">🔍 Analyze Request</div>
+      <div class="card-body">
+        <div class="radio-group">
+          <div class="row-label">Select Check Type:</div>
+          <label><input type="radio" name="check" value="sql" checked> SQL Injection</label>
+          <label><input type="radio" name="check" value="xss"> XSS Attack</label>
+          <label><input type="radio" name="check" value="brute"> Brute Force</label>
+          <label><input type="radio" name="check" value="csrf"> CSRF Attack</label>
+          <label><input type="radio" name="check" value="rfi"> Remote File Inclusion</label>
+          <label><input type="radio" name="check" value="lfi"> Local File Inclusion</label>
+          <label><input type="radio" name="check" value="full"> Full Scan</label>
+        </div>
+        <div style="color:#888;font-size:12px;margin-bottom:6px;">Enter request text or URL:</div>
+        <input type="text" id="url-input" placeholder="/login?id=1 OR 1=1">
+        <button id="analyze-btn" onclick="analyze()">[ Analyze ]</button>
+        <div id="result-box"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">📜 Last Attack Logs</div>
+      <div class="card-body" id="logs-list">Loading...</div>
+    </div>
+  </div>
+<script>
+  const API = "";
+  async function loadData() {
+    try {
+      const res = await fetch(API + "/api/data");
+      const data = await res.json();
+      document.getElementById("stat-requests").textContent = data.stats.requests;
+      document.getElementById("stat-attacks").textContent = data.stats.attacks;
+      document.getElementById("stat-blocked").textContent = data.stats.blocked;
+      const logsList = document.getElementById("logs-list");
+      if (!data.logs.length) {
+        logsList.innerHTML = '<div style="color:#555">No logs yet.</div>';
+      } else {
+        logsList.innerHTML = data.logs.slice(0, 5).map(log => `
+          <div class="log-item">
+            <span class="log-url">${escHtml(log.url)}</span>
+            <span class="${log.safe ? 'log-safe' : 'log-attack'}">${escHtml(log.result)}</span>
+            <span class="meta">[${escHtml(log.type || 'full')}] ${log.action ? 'Action: ' + escHtml(log.action) : ''}</span>
+          </div>
+        `).join("");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  async function analyze() {
+    const url = document.getElementById("url-input").value.trim();
+    if (!url) return alert("Enter a URL to analyze.");
+    const type = document.querySelector('input[name="check"]:checked').value;
+    const resultBox = document.getElementById("result-box");
+    resultBox.style.display = "block";
+    resultBox.textContent = "Analyzing...";
+    resultBox.className = "";
+    try {
+      const res = await fetch(API + "/api/analyze", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({url, type})
+      });
+      const data = await res.json();
+      if (data.safe) {
+        resultBox.className = "safe";
+        resultBox.textContent = "✅ Result: Safe";
+      } else {
+        resultBox.className = "danger";
+        const details = Array.isArray(data.details) && data.details.length ? data.details.join(', ') : data.result;
+        resultBox.textContent = `🔴 Result: ${details} Detected!`;
+        const actionLine = document.createElement('div');
+        actionLine.style.marginTop = '8px';
+        actionLine.style.color = '#ccc';
+        actionLine.textContent = `Action: ${data.action || 'Blocked request'}`;
+        resultBox.appendChild(actionLine);
+      }
+      loadData();
+    } catch (e) {
+      resultBox.className = "danger";
+      resultBox.textContent = "❌ Error: Cannot connect to server.";
+    }
+  }
+  function escHtml(str) {
+    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  loadData();
+  setInterval(loadData, 5000);
+</script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IDPS Settings</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; color: #fff; font-family: monospace; display: flex; min-height: 100vh; }
+  #sidebar { width: 220px; background: #111; border-right: 2px solid #c00; padding: 20px 0; display: flex; flex-direction: column; }
+  #sidebar h1 { color: #c00; font-size: 18px; text-align: center; padding: 0 10px 20px; border-bottom: 1px solid #c00; }
+  #sidebar nav a { display: block; padding: 12px 20px; color: #aaa; text-decoration: none; font-size: 14px; border-left: 3px solid transparent; }
+  #sidebar nav a:hover, #sidebar nav a.active { color: #fff; border-left: 3px solid #c00; background: #1a0000; }
+  #main { flex: 1; padding: 20px; overflow-y: auto; }
+  .card { background: #111; border: 1px solid #333; margin-bottom: 16px; }
+  .card-title { background: #1a0000; border-bottom: 1px solid #c00; padding: 12px 16px; color: #c00; font-size: 14px; }
+  .card-body { padding: 16px; }
+  .setting-row { margin-bottom: 14px; }
+  .setting-row p { color: #ccc; margin-bottom: 8px; font-size: 14px; }
+  button { background: #c00; color: #fff; border: none; padding: 10px 16px; cursor: pointer; margin: 6px 0; }
+  button:hover { background: #f00; }
+  #main::-webkit-scrollbar { width: 6px; }
+  #main::-webkit-scrollbar-track { background: #000; }
+  #main::-webkit-scrollbar-thumb { background: #c00; }
+</style>
+</head>
+<body>
+  <div id="sidebar">
+    <h1>🛡️ IDPS SYSTEM</h1>
+    <nav>
+      <a href="/dashboard">📊 Dashboard</a>
+      <a href="/logs">📜 Attack Logs</a>
+      <a href="/blocked">🚫 Blocked IPs</a>
+      <a href="/settings" class="active">⚙️ Settings</a>
+    </nav>
+  </div>
+  <div id="main">
+    <div class="card">
+      <div class="card-title">⚙️ System Settings</div>
+      <div class="card-body">
+        <div class="setting-row">
+          <p>Use the controls below to reset the IDPS state. These actions are useful during development or testing.</p>
+        </div>
+        <div class="setting-row">
+          <button onclick="resetStats()">Reset Statistics</button>
+        </div>
+        <div class="setting-row">
+          <button onclick="clearLogs()">Clear Attack Logs</button>
+        </div>
+        <div class="setting-row">
+          <button onclick="clearBlocked()">Clear Blocked IPs</button>
+        </div>
+        <div class="setting-row">
+          <p id="settings-summary">Loading system status...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+<script>
+  const API = "";
+  async function loadSummary() {
+    try {
+      const res = await fetch(API + "/api/data");
+      const data = await res.json();
+      document.getElementById('settings-summary').textContent = `Requests: ${data.stats.requests} | Attacks: ${data.stats.attacks} | Blocked IPs: ${data.blocked_ips.length}`;
+    } catch (e) {
+      document.getElementById('settings-summary').textContent = 'Failed to load system status.';
+    }
+  }
+  async function resetStats() {
+    if (!confirm('Reset all statistics?')) return;
+    await fetch(API + '/api/reset-stats', { method: 'POST' });
+    loadSummary();
+  }
+  async function clearLogs() {
+    if (!confirm('Clear all attack logs?')) return;
+    await fetch(API + '/api/clear-logs', { method: 'POST' });
+    loadSummary();
+  }
+  async function clearBlocked() {
+    if (!confirm('Clear all blocked IPs?')) return;
+    await fetch(API + '/api/clear-blocked', { method: 'POST' });
+    loadSummary();
+  }
+  loadSummary();
+</script>
+</body>
+</html>

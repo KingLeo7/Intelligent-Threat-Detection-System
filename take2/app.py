@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, redirect
 import re
 import sqlite3
 
@@ -21,32 +21,32 @@ def init_db():
 init_db()
 
 # Simple in-memory storage
-logs = [
-    {"url": "/login?id=1 OR 1=1", "result": "SQL Injection", "safe": False},
-    {"url": "<script>alert(1)</script>", "result": "XSS Attack", "safe": False},
-    {"url": "/home", "result": "Safe", "safe": True},
-]
+logs = []
 
-blocked_ips = ["192.168.1.10", "192.168.1.15"]
+blocked_ips = []
 
-stats = {"requests": 120, "attacks": 10, "blocked": 3}
+stats = {"requests": 0, "attacks": 0, "blocked": 0}
 
 # users = []  # Simple in-memory user storage - removed, using database now
 
 
 def check_sql(url):
     patterns = [
-        r"(or|and)\s+\d+=\d+", 
-        r"(union|select|insert|drop|delete|update|alter|create|exec|execute|--|#|/\*|\*/)", 
-        r"'.*'", 
-        r'".*"',
-        r"1=1", 
-        r"admin'--", 
-        r"' or '1'='1", 
-        r"'; drop table", 
-        r"xp_cmdshell", 
+        r"\b(select|union|insert|delete|update|drop|alter|create|exec|execute|declare|cast|sleep|benchmark|load_file|outfile|xp_cmdshell|information_schema)\b",
+        r"('\s*(or|and)\s+[\w\d]+\s*=\s*[\w\d]+)",
+        r'"\s*(or|and)\s+[\w\d]+\s*=\s*[\w\d]+',
+        r"\b1\s*=\s*1\b",
+        r"\b0\s*=\s*0\b",
+        r"--",
+        r"#",
+        r"/\*",
+        r"\*/",
+        r"\bor\b\s+\d+\s*=\s*\d+",
+        r"\band\b\s+\d+\s*=\s*\d+",
+        r"admin'--",
+        r"' or '1'='1",
+        r"';\s*drop\s+table",
         r"script>",
-        r"<script"
     ]
     for p in patterns:
         if re.search(p, url, re.IGNORECASE):
@@ -56,25 +56,35 @@ def check_sql(url):
 
 def check_xss(url):
     patterns = [
-        r"<script", 
-        r"javascript:", 
-        r"onerror=", 
-        r"onload=", 
-        r"onmouseover=", 
-        r"onclick=", 
-        r"<img", 
-        r"<iframe", 
-        r"<object", 
-        r"<embed", 
-        r"alert\(", 
-        r"confirm\(", 
-        r"prompt\(", 
-        r"eval\(", 
-        r"document\.cookie", 
-        r"document\.location", 
-        r"window\.location", 
-        r"innerHTML", 
-        r"outerHTML"
+        r"<script",
+        r"javascript:",
+        r"onerror=",
+        r"onload=",
+        r"onmouseover=",
+        r"onclick=",
+        r"onfocus=",
+        r"onblur=",
+        r"onmouseenter=",
+        r"<img",
+        r"<iframe",
+        r"<object",
+        r"<embed",
+        r"<svg",
+        r"<math",
+        r"<body",
+        r"<video",
+        r"<audio",
+        r"alert\(",
+        r"confirm\(",
+        r"prompt\(",
+        r"eval\(",
+        r"document\.cookie",
+        r"document\.location",
+        r"window\.location",
+        r"innerHTML",
+        r"outerHTML",
+        r"expression\(",
+        r"style=\".*expression\(",
     ]
     for p in patterns:
         if re.search(p, url, re.IGNORECASE):
@@ -84,21 +94,29 @@ def check_xss(url):
 
 def check_brute(url):
     patterns = [
-        r"(login|admin|passwd|password|auth|signin|logon)",
-        r"(retry|attempt|failed|error)",
-        r"(brute|force|attack)",
-        r"(multiple|repeated)",
-        r"(lockout|blocked)",
-        r"(captcha|bypass)"
+        r"\b(login|admin|passwd|password|auth|signin|logon)\b",
+        r"\b(retry|attempt|failed|error|invalid)\b",
+        r"\b(brute|force|attack|bot|scanner)\b",
+        r"\b(multiple|repeated|consecutive)\b",
+        r"\b(lockout|blocked|captcha|bypass)\b",
+        r"\b(credential|credential stuffing|password spray)\b",
     ]
-    count = sum(1 for p in patterns if re.search(p, url, re.IGNORECASE))
-    if count >= 2:
+    score = sum(1 for p in patterns if re.search(p, url, re.IGNORECASE))
+    if score >= 2:
         return "Brute Force"
     return None
 
 
 def check_csrf(url):
-    patterns = [r"csrf", r"token", r"cross.site.request.forgery", r"referer", r"origin"]
+    patterns = [
+        r"\bcsrf\b",
+        r"\btoken\b",
+        r"cross\.site\.request\.forgery",
+        r"\breferer\b",
+        r"\borigin\b",
+        r"\bsecure\b",
+        r"\bread\b",
+    ]
     for p in patterns:
         if re.search(p, url, re.IGNORECASE):
             return "CSRF Attack"
@@ -106,7 +124,18 @@ def check_csrf(url):
 
 
 def check_rfi(url):
-    patterns = [r"http://", r"https://", r"ftp://", r"file://", r"php://", r"data://", r"include", r"require", r"remote.file.inclusion"]
+    patterns = [
+        r"http://",
+        r"https://",
+        r"ftp://",
+        r"file://",
+        r"php://",
+        r"data://",
+        r"include\b",
+        r"require\b",
+        r"remote\.file\.inclusion",
+        r"\b(url|path)=.*(http|ftp|php|data):",
+    ]
     for p in patterns:
         if re.search(p, url, re.IGNORECASE):
             return "Remote File Inclusion"
@@ -114,16 +143,66 @@ def check_rfi(url):
 
 
 def check_lfi(url):
-    patterns = [r"\.\./", r"\.\.\\", r"etc/passwd", r"boot.ini", r"local.file.inclusion", r"directory.traversal"]
+    patterns = [
+        r"\.\./",
+        r"\.\.\\",
+        r"etc/passwd",
+        r"boot\.ini",
+        r"\b\./\b",
+        r"\b\../\b",
+        r"\b\..\\\b",
+        r"local\.file\.inclusion",
+        r"directory\.traversal",
+    ]
     for p in patterns:
         if re.search(p, url, re.IGNORECASE):
             return "Local File Inclusion"
     return None
 
 
+def determine_action(detections, ip):
+    if not detections:
+        return "No action needed"
+
+    if "Brute Force" in detections:
+        return "Blocked request and rate-limited IP"
+    if "SQL Injection" in detections:
+        return "Blocked request and blacklisted IP"
+    if "XSS Attack" in detections:
+        return "Filtered payload and blocked request"
+    if "CSRF Attack" in detections:
+        return "Dropped request and invalidated token"
+    if "Remote File Inclusion" in detections:
+        return "Blocked external payload and blacklisted IP"
+    if "Local File Inclusion" in detections:
+        return "Blocked path traversal attempt"
+
+    return "Blocked request and blacklisted IP"
+
+
 @app.route("/")
 def index():
     return send_from_directory(".", "login.html")
+
+
+@app.route("/dashboard")
+def dashboard():
+    return send_from_directory(".", "dashboard.html")
+
+
+@app.route("/logs")
+def logs_page():
+    return send_from_directory(".", "logs.html")
+
+
+@app.route("/blocked")
+def blocked_page():
+    return send_from_directory(".", "blocked.html")
+
+
+@app.route("/settings")
+def settings_page():
+    return send_from_directory(".", "settings.html")
 
 
 @app.route("/api/analyze", methods=["POST"])
@@ -132,43 +211,50 @@ def analyze():
     url = data.get("url", "")
     check_type = data.get("type", "full")
 
-    result = None
-
     if check_type == "sql":
-        result = check_sql(url)
+        matches = [check_sql(url)]
     elif check_type == "xss":
-        result = check_xss(url)
+        matches = [check_xss(url)]
     elif check_type == "brute":
-        result = check_brute(url)
+        matches = [check_brute(url)]
     elif check_type == "csrf":
-        result = check_csrf(url)
+        matches = [check_csrf(url)]
     elif check_type == "rfi":
-        result = check_rfi(url)
+        matches = [check_rfi(url)]
     elif check_type == "lfi":
-        result = check_lfi(url)
+        matches = [check_lfi(url)]
     else:  # full scan
-        result = check_sql(url) or check_xss(url) or check_brute(url) or check_csrf(url) or check_rfi(url) or check_lfi(url)
+        matches = [
+            check_sql(url),
+            check_xss(url),
+            check_brute(url),
+            check_csrf(url),
+            check_rfi(url),
+            check_lfi(url),
+        ]
 
-    if not result:
-        result = "Safe"
-
-    safe = result == "Safe"
+    results = [m for m in matches if m]
+    safe = len(results) == 0
+    summary = "Safe"
+    if not safe:
+        summary = ", ".join(sorted(set(results)))
 
     # Update stats
     stats["requests"] += 1
+    ip = request.remote_addr or "unknown"
+    action = determine_action(results, ip)
     if not safe:
         stats["attacks"] += 1
-        ip = request.remote_addr or "unknown"
         if ip not in blocked_ips:
             blocked_ips.append(ip)
             stats["blocked"] += 1
 
     # Add to logs
-    logs.insert(0, {"url": url, "result": result, "safe": safe})
+    logs.insert(0, {"url": url, "result": summary, "safe": safe, "type": check_type, "action": action})
     if len(logs) > 20:
         logs.pop()
 
-    return jsonify({"result": result, "safe": safe})
+    return jsonify({"result": summary, "safe": safe, "details": results, "scan": check_type, "action": action})
 
 
 @app.route("/api/data")
@@ -214,7 +300,7 @@ def login():
         conn.close()
         
         if user:
-            return send_from_directory(".", "index.html")  # redirect to dashboard
+            return redirect('/dashboard')
         else:
             return "Invalid credentials"
     return send_from_directory(".", "login.html")

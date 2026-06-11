@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IDPS Attack Logs</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; color: #fff; font-family: monospace; display: flex; min-height: 100vh; }
+  #sidebar { width: 220px; background: #111; border-right: 2px solid #c00; padding: 20px 0; display: flex; flex-direction: column; }
+  #sidebar h1 { color: #c00; font-size: 18px; text-align: center; padding: 0 10px 20px; border-bottom: 1px solid #c00; }
+  #sidebar nav a { display: block; padding: 12px 20px; color: #aaa; text-decoration: none; font-size: 14px; border-left: 3px solid transparent; }
+  #sidebar nav a:hover, #sidebar nav a.active { color: #fff; border-left: 3px solid #c00; background: #1a0000; }
+  #main { flex: 1; padding: 20px; overflow-y: auto; }
+  .card { background: #111; border: 1px solid #333; margin-bottom: 16px; }
+  .card-title { background: #1a0000; border-bottom: 1px solid #c00; padding: 12px 16px; color: #c00; font-size: 14px; }
+  .card-body { padding: 16px; }
+  .log-item { display: flex; flex-wrap: wrap; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #222; font-size: 14px; gap: 8px; }
+  .log-url { color: #ccc; flex: 1; min-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .log-safe { color: #0f0; }
+  .log-attack { color: #f44; }
+  .meta { color: #888; font-size: 12px; }
+  button { background: #c00; color: #fff; border: none; padding: 10px 16px; cursor: pointer; margin-top: 10px; }
+  button:hover { background: #f00; }
+  #main::-webkit-scrollbar { width: 6px; }
+  #main::-webkit-scrollbar-track { background: #000; }
+  #main::-webkit-scrollbar-thumb { background: #c00; }
+</style>
+</head>
+<body>
+  <div id="sidebar">
+    <h1>🛡️ IDPS SYSTEM</h1>
+    <nav>
+      <a href="/dashboard">📊 Dashboard</a>
+      <a href="/logs" class="active">📜 Attack Logs</a>
+      <a href="/blocked">🚫 Blocked IPs</a>
+      <a href="/settings">⚙️ Settings</a>
+    </nav>
+  </div>
+  <div id="main">
+    <div class="card">
+      <div class="card-title">📜 Attack Logs</div>
+      <div class="card-body" id="logs-list">Loading...</div>
+      <button onclick="clearLogs()">Clear All Logs</button>
+    </div>
+  </div>
+<script>
+  const API = "";
+  async function loadLogs() {
+    try {
+      const res = await fetch(API + "/api/data");
+      const data = await res.json();
+      const logsList = document.getElementById("logs-list");
+      if (!data.logs.length) {
+        logsList.innerHTML = '<div style="color:#555">No logs available.</div>';
+        return;
+      }
+      logsList.innerHTML = data.logs.map(log => `
+        <div class="log-item">
+          <span class="log-url">${escHtml(log.url)}</span>
+          <span class="${log.safe ? 'log-safe' : 'log-attack'}">${escHtml(log.result)}</span>
+          <span class="meta">[${escHtml(log.type || 'full')}] ${log.action ? 'Action: ' + escHtml(log.action) : ''}</span>
+        </div>
+      `).join("");
+    } catch (e) {
+      document.getElementById("logs-list").innerHTML = '<div style="color:#f44">Failed to load logs.</div>';
+    }
+  }
+  async function clearLogs() {
+    if (!confirm('Clear all attack logs?')) return;
+    await fetch(API + '/api/clear-logs', { method: 'POST' });
+    loadLogs();
+  }
+  function escHtml(str) {
+    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  loadLogs();
+</script>
+</body>
+</html>

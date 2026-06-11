@@ -321,6 +321,8 @@
           <div class="log-item">
             <span class="log-url">${escHtml(log.url)}</span>
             <span class="${log.safe ? 'log-safe' : 'log-attack'}">&nbsp;${escHtml(log.result)}</span>
+            <span style="color:#888; margin-left:8px; font-size:12px;">[${escHtml(log.type || 'full')}]</span>
+            ${log.action ? `<span style="color:#888; margin-left:8px; font-size:12px;">Action: ${escHtml(log.action)}</span>` : ''}
           </div>
         `).join("");
       }
@@ -364,7 +366,18 @@
         resultBox.textContent = "✅ Result: Safe";
       } else {
         resultBox.className = "danger";
-        resultBox.textContent = "🔴 Result: " + data.result + " Detected!";
+        const details = Array.isArray(data.details) && data.details.length > 0
+          ? data.details.join(', ')
+          : data.result;
+        resultBox.textContent = `🔴 Result: ${details} Detected!`;
+      }
+
+      if (data.action) {
+        const actionLine = document.createElement('div');
+        actionLine.style.marginTop = '8px';
+        actionLine.style.color = '#ccc';
+        actionLine.textContent = `Action: ${data.action}`;
+        resultBox.appendChild(actionLine);
       }
 
       loadData(); // refresh stats and logs
@@ -419,7 +432,6 @@
     }
   }
 
-  // Load on start, refresh every 5 seconds
   loadData();
   setInterval(loadData, 5000);
 </script>
