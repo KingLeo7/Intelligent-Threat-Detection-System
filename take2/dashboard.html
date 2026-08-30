@@ -49,6 +49,8 @@
       <a href="/logs">📜 Attack Logs</a>
       <a href="/blocked">🚫 Blocked IPs</a>
       <a href="/settings">⚙️ Settings</a>
+      <a href="/admin">🛠️ Admin</a>
+      <a href="/logout">🔐 Logout</a>
     </nav>
   </div>
   <div id="main">
@@ -81,11 +83,12 @@
           <label><input type="radio" name="check" value="csrf"> CSRF Attack</label>
           <label><input type="radio" name="check" value="rfi"> Remote File Inclusion</label>
           <label><input type="radio" name="check" value="lfi"> Local File Inclusion</label>
+          <label><input type="radio" name="check" value="cmdi"> Command Injection</label>
           <label><input type="radio" name="check" value="full"> Full Scan</label>
         </div>
         <div style="color:#888;font-size:12px;margin-bottom:6px;">Enter request text or URL:</div>
         <input type="text" id="url-input" placeholder="/login?id=1 OR 1=1">
-        <button id="analyze-btn" onclick="analyze()">[ Analyze ]</button>
+        <button id="analyze-btn" style="background: #c00; color: #fff; border: none; padding: 10px 24px; font-family: monospace; font-size: 14px; cursor: pointer; width: 100%; margin-top: 12px;">[ Analyze ]</button>
         <div id="result-box"></div>
       </div>
     </div>
@@ -94,70 +97,7 @@
       <div class="card-body" id="logs-list">Loading...</div>
     </div>
   </div>
-<script>
-  const API = "";
-  async function loadData() {
-    try {
-      const res = await fetch(API + "/api/data");
-      const data = await res.json();
-      document.getElementById("stat-requests").textContent = data.stats.requests;
-      document.getElementById("stat-attacks").textContent = data.stats.attacks;
-      document.getElementById("stat-blocked").textContent = data.stats.blocked;
-      const logsList = document.getElementById("logs-list");
-      if (!data.logs.length) {
-        logsList.innerHTML = '<div style="color:#555">No logs yet.</div>';
-      } else {
-        logsList.innerHTML = data.logs.slice(0, 5).map(log => `
-          <div class="log-item">
-            <span class="log-url">${escHtml(log.url)}</span>
-            <span class="${log.safe ? 'log-safe' : 'log-attack'}">${escHtml(log.result)}</span>
-            <span class="meta">[${escHtml(log.type || 'full')}] ${log.action ? 'Action: ' + escHtml(log.action) : ''}</span>
-          </div>
-        `).join("");
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }
-  async function analyze() {
-    const url = document.getElementById("url-input").value.trim();
-    if (!url) return alert("Enter a URL to analyze.");
-    const type = document.querySelector('input[name="check"]:checked').value;
-    const resultBox = document.getElementById("result-box");
-    resultBox.style.display = "block";
-    resultBox.textContent = "Analyzing...";
-    resultBox.className = "";
-    try {
-      const res = await fetch(API + "/api/analyze", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({url, type})
-      });
-      const data = await res.json();
-      if (data.safe) {
-        resultBox.className = "safe";
-        resultBox.textContent = "✅ Result: Safe";
-      } else {
-        resultBox.className = "danger";
-        const details = Array.isArray(data.details) && data.details.length ? data.details.join(', ') : data.result;
-        resultBox.textContent = `🔴 Result: ${details} Detected!`;
-        const actionLine = document.createElement('div');
-        actionLine.style.marginTop = '8px';
-        actionLine.style.color = '#ccc';
-        actionLine.textContent = `Action: ${data.action || 'Blocked request'}`;
-        resultBox.appendChild(actionLine);
-      }
-      loadData();
-    } catch (e) {
-      resultBox.className = "danger";
-      resultBox.textContent = "❌ Error: Cannot connect to server.";
-    }
-  }
-  function escHtml(str) {
-    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  }
-  loadData();
-  setInterval(loadData, 5000);
-</script>
+<script src="/csrf.js"></script>
+<script src="/dashboard.js"></script>
 </body>
 </html>

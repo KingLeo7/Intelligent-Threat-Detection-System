@@ -19,6 +19,8 @@
   .setting-row p { color: #ccc; margin-bottom: 8px; font-size: 14px; }
   button { background: #c00; color: #fff; border: none; padding: 10px 16px; cursor: pointer; margin: 6px 0; }
   button:hover { background: #f00; }
+  .list-item { color: #ccc; font-size: 13px; padding: 5px 0; border-bottom: 1px solid #222; }
+  code { color: #f66; background: #1a0000; padding: 0 3px; }
   #main::-webkit-scrollbar { width: 6px; }
   #main::-webkit-scrollbar-track { background: #000; }
   #main::-webkit-scrollbar-thumb { background: #c00; }
@@ -32,6 +34,8 @@
       <a href="/logs">📜 Attack Logs</a>
       <a href="/blocked">🚫 Blocked IPs</a>
       <a href="/settings" class="active">⚙️ Settings</a>
+      <a href="/admin">🛠️ Admin</a>
+      <a href="/logout">🔐 Logout</a>
     </nav>
   </div>
   <div id="main">
@@ -42,47 +46,33 @@
           <p>Use the controls below to reset the IDPS state. These actions are useful during development or testing.</p>
         </div>
         <div class="setting-row">
-          <button onclick="resetStats()">Reset Statistics</button>
+          <button data-action="reset-stats">Reset Statistics</button>
         </div>
         <div class="setting-row">
-          <button onclick="clearLogs()">Clear Attack Logs</button>
+          <button data-action="clear-logs">Clear Attack Logs</button>
         </div>
         <div class="setting-row">
-          <button onclick="clearBlocked()">Clear Blocked IPs</button>
+          <button data-action="clear-blocked">Clear Blocked IPs</button>
         </div>
         <div class="setting-row">
           <p id="settings-summary">Loading system status...</p>
         </div>
       </div>
     </div>
+    <div class="card">
+      <div class="card-title">📋 Active Detection Policy</div>
+      <div class="card-body">
+        <div class="setting-row">
+          <p>Each rule contributes a weight; a category is only reported once its
+             matched weight reaches the threshold below. That is what keeps
+             ordinary URLs containing <code>--</code>, <code>#</code> or the word
+             <code>update</code> out of the log.</p>
+        </div>
+        <div id="rules-summary">Loading rule summary...</div>
+      </div>
+    </div>
   </div>
-<script>
-  const API = "";
-  async function loadSummary() {
-    try {
-      const res = await fetch(API + "/api/data");
-      const data = await res.json();
-      document.getElementById('settings-summary').textContent = `Requests: ${data.stats.requests} | Attacks: ${data.stats.attacks} | Blocked IPs: ${data.blocked_ips.length}`;
-    } catch (e) {
-      document.getElementById('settings-summary').textContent = 'Failed to load system status.';
-    }
-  }
-  async function resetStats() {
-    if (!confirm('Reset all statistics?')) return;
-    await fetch(API + '/api/reset-stats', { method: 'POST' });
-    loadSummary();
-  }
-  async function clearLogs() {
-    if (!confirm('Clear all attack logs?')) return;
-    await fetch(API + '/api/clear-logs', { method: 'POST' });
-    loadSummary();
-  }
-  async function clearBlocked() {
-    if (!confirm('Clear all blocked IPs?')) return;
-    await fetch(API + '/api/clear-blocked', { method: 'POST' });
-    loadSummary();
-  }
-  loadSummary();
-</script>
+<script src="/csrf.js"></script>
+<script src="/settings.js"></script>
 </body>
 </html>

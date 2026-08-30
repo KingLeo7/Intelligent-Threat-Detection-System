@@ -32,40 +32,18 @@
       <a href="/logs">📜 Attack Logs</a>
       <a href="/blocked" class="active">🚫 Blocked IPs</a>
       <a href="/settings">⚙️ Settings</a>
+      <a href="/admin">🛠️ Admin</a>
+      <a href="/logout">🔐 Logout</a>
     </nav>
   </div>
   <div id="main">
     <div class="card">
       <div class="card-title">🚫 Blocked IPs</div>
       <div class="card-body" id="blocked-list">Loading...</div>
-      <button onclick="clearBlocked()">Clear Blocked IPs</button>
+      <button data-action="clear-blocked">Clear Blocked IPs</button>
     </div>
   </div>
-<script>
-  const API = "";
-  async function loadBlocked() {
-    try {
-      const res = await fetch(API + "/api/data");
-      const data = await res.json();
-      const blockedList = document.getElementById("blocked-list");
-      if (!data.blocked_ips.length) {
-        blockedList.innerHTML = '<div style="color:#555">No blocked IPs.</div>';
-        return;
-      }
-      blockedList.innerHTML = data.blocked_ips.map(ip => `<div class="ip-item">${escHtml(ip)}</div>`).join("");
-    } catch (e) {
-      document.getElementById("blocked-list").innerHTML = '<div style="color:#f44">Failed to load blocked IPs.</div>';
-    }
-  }
-  async function clearBlocked() {
-    if (!confirm('Clear all blocked IPs?')) return;
-    await fetch(API + '/api/clear-blocked', { method: 'POST' });
-    loadBlocked();
-  }
-  function escHtml(str) {
-    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  }
-  loadBlocked();
-</script>
+<script src="/csrf.js"></script>
+<script src="/blocked.js"></script>
 </body>
 </html>
