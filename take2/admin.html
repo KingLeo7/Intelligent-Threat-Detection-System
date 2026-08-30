@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IDPS Attack Logs</title>
+<title>IDPS Admin Panel</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #000; color: #fff; font-family: monospace; display: flex; min-height: 100vh; }
@@ -15,13 +15,12 @@
   .card { background: #111; border: 1px solid #333; margin-bottom: 16px; }
   .card-title { background: #1a0000; border-bottom: 1px solid #c00; padding: 12px 16px; color: #c00; font-size: 14px; }
   .card-body { padding: 16px; }
-  .log-item { display: flex; flex-wrap: wrap; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #222; font-size: 14px; gap: 8px; }
-  .log-url { color: #ccc; flex: 1; min-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .log-safe { color: #0f0; }
-  .log-attack { color: #f44; }
-  .meta { color: #888; font-size: 12px; }
-  button { background: #c00; color: #fff; border: none; padding: 10px 16px; cursor: pointer; margin-top: 10px; }
-  button:hover { background: #f00; }
+  .button { background: #c00; color: #fff; border: none; padding: 10px 16px; cursor: pointer; margin-top: 10px; }
+  .button:hover { background: #f00; }
+  .summary { margin-bottom: 14px; color: #ccc; font-size: 14px; }
+  .list { margin-top: 12px; }
+  .list-item { padding: 10px 12px; border-bottom: 1px solid #222; color: #ccc; }
+  .list-item strong { color: #fff; }
   #main::-webkit-scrollbar { width: 6px; }
   #main::-webkit-scrollbar-track { background: #000; }
   #main::-webkit-scrollbar-thumb { background: #c00; }
@@ -32,21 +31,33 @@
     <h1>🛡️ IDPS SYSTEM</h1>
     <nav>
       <a href="/dashboard">📊 Dashboard</a>
-      <a href="/logs" class="active">📜 Attack Logs</a>
+      <a href="/logs">📜 Attack Logs</a>
       <a href="/blocked">🚫 Blocked IPs</a>
       <a href="/settings">⚙️ Settings</a>
-      <a href="/admin">🛠️ Admin</a>
+      <a href="/admin" class="active">🛠️ Admin</a>
       <a href="/logout">🔐 Logout</a>
     </nav>
   </div>
   <div id="main">
     <div class="card">
-      <div class="card-title">📜 Attack Logs</div>
-      <div class="card-body" id="logs-list">Loading...</div>
-      <button data-action="clear-logs">Clear All Logs</button>
+      <div class="card-title">🛠️ Admin Control Panel</div>
+      <div class="card-body">
+        <div class="summary">Signed in as <strong id="admin-identity">...</strong></div>
+        <div class="summary">Inspect detected vulnerabilities and manage non-administrator accounts.</div>
+        <button class="button" data-action="refresh">Refresh Vulnerability Summary</button>
+        <div class="list" id="vulnerabilities">Loading vulnerability summary...</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">👤 Registered Users</div>
+      <div class="card-body">
+        <button class="button" data-action="clear-users">Remove all non-admin users</button>
+        <div class="list" id="users-list">Loading user list...</div>
+      </div>
     </div>
   </div>
-<script src="/csrf.js"></script>
-<script src="/logs.js"></script>
+  <script src="/csrf.js"></script>
+  <script src="/admin.js"></script>
 </body>
 </html>
+

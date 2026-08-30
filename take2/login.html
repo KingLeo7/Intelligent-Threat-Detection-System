@@ -127,10 +127,12 @@
   <div id="main">
     <div class="login-box">
       <h2>IDPS Login</h2>
-
-      <form action="/login" method="post">
-        <input type="text" name="username" placeholder="Username" required>
-        <input type="password" name="password" placeholder="Password" required>
+      <form action="/login" method="post" autocomplete="on">
+        <input type="text" name="username" placeholder="Username" required
+               maxlength="64" autocomplete="username" autocapitalize="none"
+               spellcheck="false">
+        <input type="password" name="password" placeholder="Password" required
+               maxlength="128" autocomplete="current-password">
 
         <div class="btn-group">
           <button type="submit">Login</button>

@@ -125,8 +125,15 @@
       <h2>Create Account</h2>
 
       <form action="/register" method="post">
-        <input type="text" name="username" placeholder="Username" required>
-        <input type="password" name="password" placeholder="Password" required>
+        <input type="text" name="username" placeholder="Username" required
+               minlength="3" maxlength="64" pattern="[A-Za-z0-9._\-]{3,64}"
+               autocomplete="username" autocapitalize="none" spellcheck="false"
+               title="3-64 characters: letters, numbers, dot, underscore or hyphen">
+        <input type="password" name="password" placeholder="Password" required
+               minlength="8" maxlength="128" autocomplete="new-password">
+        <p class="link-text" style="text-align:left;margin:4px 0 12px;">
+          At least 8 characters, and not a password from the common-password list.
+        </p>
 
         <button type="submit">Register</button>
       </form>
