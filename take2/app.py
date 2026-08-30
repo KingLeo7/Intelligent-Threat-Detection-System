@@ -308,7 +308,9 @@ def fetch_for_reflection(url: str) -> tuple[str, str, int | None]:
     if not ALLOW_REMOTE_FETCH:
         return "", "remote fetch disabled (set IDPS_ALLOW_REMOTE_FETCH=1 to enable)", None
     if not url.lower().startswith(("http://", "https://")):
-        return "", "", None
+        # Nothing is fetched for file://, gopher:// and friends. Say so rather
+        # than returning a blank note, so the dashboard can explain the gap.
+        return "", "fetch skipped: only http and https targets are fetched", None
 
     decision = security.validate_fetch_target(url)
     if not decision.allowed:
